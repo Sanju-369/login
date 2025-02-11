@@ -1,8 +1,8 @@
 <?php
 session_start();
 
-// Directly define the Database Connection URL
-$connection_url = "mysql://root:utpIjAzjQCWBwzoqrzlqGpopmsPltyTv@autorack.proxy.rlwy.net:52609/railway"; // Replace with actual credentials
+// Fetch Database Connection URL from environment variable
+$connection_url = getenv("DATABASE_URL");
 
 if (!$connection_url) {
     die("Database connection URL not set.");
