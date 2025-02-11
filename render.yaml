@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: my-second-php-app  # Change to a unique name
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    buildCommand: "docker build -t my-second-php-app ."
+    startCommand: "apache2-foreground"  # No need to manually run Docker inside Docker
