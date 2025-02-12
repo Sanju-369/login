@@ -1,8 +1,16 @@
 services:
   - type: web
-    name: my-second-php-app  # Change to a unique name
+    name: your-php-app
     env: docker
     plan: free
     dockerfilePath: ./Dockerfile
-    buildCommand: "docker build -t my-second-php-app ."
-    startCommand: "apache2-foreground"  # No need to manually run Docker inside Docker
+    disk:
+      name: persistent-storage
+      mountPath: /var/www/html
+    buildCommand: "docker build -t your-php-app ."
+    startCommand: "apache2-foreground"
+    envVars:
+      - key: DATABASE_URL
+        sync: false  # Make sure to set this in the Render dashboard manually
+    healthCheckPath: "/"
+    autoDeploy: true
