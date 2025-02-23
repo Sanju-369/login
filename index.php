@@ -1,45 +1,68 @@
 <?php
 session_start();
+require 'vendor/autoload.php'; // Google API Client Library
 
-// Fetch Database Connection URL from environment variable
-$connection_url = getenv("DATABASE_URL");
+use Google\Client;
+use Google\Service\Sheets;
 
-if (!$connection_url) {
-    die("Database connection URL not set.");
-}
+// Load Google Service Account JSON Key
+$client = new Client();
+$client->setAuthConfig('service-account.json'); // JSON key file path
+$client->setScopes([Sheets::SPREADSHEETS]);
 
-// Parse the connection URL
-$parsed_url = parse_url($connection_url);
-$host = $parsed_url["host"];
-$port = $parsed_url["port"] ?? "3306";
-$username = $parsed_url["user"];
-$password = $parsed_url["pass"];
-$dbname = ltrim($parsed_url["path"], "/");
+$service = new Sheets($client);
+$spreadsheetId = "1e7rZcQ93-KweIxpFv5xEy21544-r1-VYOK-QxGco_zM"; // Replace with your Google Sheet ID
+$range = "Sheet1!A:B"; // Adjust columns as needed
 
-// Connect to MySQL database using PDO
-try {
-    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
-    $conn = new PDO($dsn, $username, $password);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("Database connection failed: " . $e->getMessage());
-}
-
-// Check if form is submitted
 $error = "";
+
+// Set Session Timeout (e.g., 15 minutes)
+$sessionTimeout = 15 * 60; // 15 minutes in seconds
+
+// If the user is already logged in, check for inactivity
+if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
+    if (isset($_SESSION['login_time']) && (time() - $_SESSION['login_time'] > $sessionTimeout)) {
+        // Session expired, logout the user
+        session_destroy();
+        header("Location: index.php?timeout=true");
+        exit();
+    } else {
+        // Update session time to keep it active
+        $_SESSION['login_time'] = time();
+        
+        // Redirect to Streamlit app with token
+        header("Location: https://youutuberesearcher.streamlit.app/?token=" . $_SESSION['token']);
+        exit();
+    }
+}
+
+// Login Process
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $sub_id = trim($_POST['sub_id'] ?? '');
 
     if (!empty($sub_id)) {
-        // Check if sub_id exists in the database
-        $stmt = $conn->prepare("SELECT sub_id FROM subscriptions WHERE sub_id = :sub_id");
-        $stmt->bindParam(':sub_id', $sub_id, PDO::PARAM_STR);
-        $stmt->execute();
+        // Read data from Google Sheet
+        $response = $service->spreadsheets_values->get($spreadsheetId, $range);
+        $values = $response->getValues();
 
-        if ($stmt->rowCount() > 0) {
-            // Valid sub_id, start session and redirect to app.php
+        $isValid = false;
+        foreach ($values as $row) {
+            if ($row[0] == $sub_id) {
+                $isValid = true;
+                break;
+            }
+        }
+
+        if ($isValid) {
             $_SESSION['sub_id'] = $sub_id;
-            header("Location: app.php");
+            $_SESSION['logged_in'] = true;
+            $_SESSION['login_time'] = time(); // Track session time
+
+            // Generate a unique session token for validation
+            $_SESSION['token'] = bin2hex(random_bytes(32)); // 64-character secure token
+
+            // Redirect to Streamlit app with token
+            header("Location: https://youutuberesearcher.streamlit.app/?token=" . $_SESSION['token']);
             exit();
         } else {
             $error = "Invalid Subscription ID!";
@@ -47,6 +70,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } else {
         $error = "Please enter your Subscription ID!";
     }
+}
+
+// Logout Logic
+if (isset($_GET['logout'])) {
+    session_destroy();
+    header("Location: index.php");
+    exit();
 }
 ?>
 
@@ -57,14 +87,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <style>
+        /* Simple styling for the login form */
         body {
             font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+            background-image: linear-gradient(to right, #1a2a6c, #b21f1f, #fdbb2d);
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
+            flex-direction: column;
         }
         .login-container {
             background: white;
@@ -73,8 +105,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             width: 300px;
             text-align: center;
-        }
-        .login-container h2 {
             margin-bottom: 20px;
         }
         .input-group {
@@ -122,6 +152,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <button type="submit" class="btn">Login</button>
     </form>
     <?php if (!empty($error)) { echo "<p class='error'>$error</p>"; } ?>
+    <?php if (isset($_GET['timeout'])) { echo "<p class='error'>Session expired. Please log in again.</p>"; } ?>
 </div>
 
 </body>

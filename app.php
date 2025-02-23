@@ -1,36 +1,42 @@
-
 <?php
-session_start(); // Start session to track login status
+session_start();
 
 // Check if the user is logged in
-if (!isset($_SESSION['sub_id'])) {
-    // If not logged in, redirect to login page
-    header("Location: login.php");
+if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    header("Location: index.php");
     exit();
 }
-
-$sub_id = $_SESSION['sub_id']; // Retrieve the logged-in user's sub_id
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to the App</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secure App</title>
+  <style>
+    body { margin: 0; padding: 0; overflow: hidden; }
+    iframe { width: 100vw; height: 100vh; border: none; }
+    .logout-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: red;
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .logout-btn:hover {
+      background: darkred;
+    }
+  </style>
 </head>
 <body>
-    <h2>Welcome to the App</h2>
-    <p>Your Subscription ID: <strong><?php echo htmlspecialchars($sub_id); ?></strong></p>
-    
-    <!-- Add Streamlit App Button -->
-    <p>
-        <a href="https://youutuberesearcher.streamlit.app/" target="_blank">
-            <button>Go to Streamlit App</button>
-        </a>
-    </p>
 
-    <p><a href="logout.php">Logout</a></p>
+  <a href="index.php?logout=true" class="logout-btn">Logout</a>
+  <iframe src="https://youutuberesearcher.streamlit.app/" sandbox="allow-scripts allow-same-origin"></iframe>
+
 </body>
 </html>
