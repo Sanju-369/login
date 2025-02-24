@@ -5,24 +5,20 @@ require 'vendor/autoload.php'; // Google API Client Library
 use Google\Client;
 use Google\Service\Sheets;
 
-// Load Google Service Account JSON from Environment Variable
-$serviceAccountJson = getenv('SERVICE_ACCOUNT_JSON');
+// Fetch the service account JSON file path from the environment variable
+$serviceAccountPath = getenv('GOOGLE_APPLICATION_CREDENTIALS');
 
-if (!$serviceAccountJson) {
-    die("Error: GOOGLE_APPLICATION_CREDENTIALS environment variable is not set.");
+if (!$serviceAccountPath || !file_exists($serviceAccountPath)) {
+    die("Error: GOOGLE_APPLICATION_CREDENTIALS environment variable is not set or file not found.");
 }
-
-// Save JSON to a temporary file (because Google Client requires a file path)
-$serviceAccountFile = sys_get_temp_dir() . '/service-account.json';
-file_put_contents($serviceAccountFile, $serviceAccountJson);
 
 // Initialize Google Client
 $client = new Client();
-$client->setAuthConfig($serviceAccountFile); // Use temporary file
+$client->setAuthConfig($serviceAccountPath); // Use the environment variable path
 $client->setScopes([Sheets::SPREADSHEETS]);
 
 $service = new Sheets($client);
-$spreadsheetId = "1e7rZcQ93-KweIxpFv5xEy21544-r1-VYOK-QxGco_zM"; // Replace with your Google Sheet ID
+$spreadsheetId = "1e7rZcQ93-KweIxpFv5xEy21544-r1-VYOK-QxGco_zM"; // Replace with your actual Google Sheet ID
 $range = "Sheet1!A:B"; // Adjust columns as needed
 
 $error = "";
