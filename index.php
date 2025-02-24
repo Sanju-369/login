@@ -5,9 +5,23 @@ require 'vendor/autoload.php'; // Google API Client Library
 use Google\Client;
 use Google\Service\Sheets;
 
-// Load Google Service Account JSON Key
+// Load Google Service Account JSON from Environment Variable
+$serviceAccountJson = getenv('GOOGLE_APPLICATION_CREDENTIALS');
+
+if (!$serviceAccountJson) {
+    die("Error: GOOGLE_APPLICATION_CREDENTIALS environment variable is not set.");
+}
+
+// Decode JSON from the environment variable
+$serviceAccountArray = json_decode($serviceAccountJson, true);
+
+if (json_last_error() !== JSON_ERROR_NONE) {
+    die("Error: Invalid JSON in GOOGLE_APPLICATION_CREDENTIALS.");
+}
+
+// Initialize Google Client
 $client = new Client();
-$client->setAuthConfig('service-account.json'); // JSON key file path
+$client->setAuthConfig($serviceAccountArray); // Use the decoded JSON
 $client->setScopes([Sheets::SPREADSHEETS]);
 
 $service = new Sheets($client);
