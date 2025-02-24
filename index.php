@@ -6,22 +6,19 @@ use Google\Client;
 use Google\Service\Sheets;
 
 // Load Google Service Account JSON from Environment Variable
-$serviceAccountJson = getenv('GOOGLE_APPLICATION_CREDENTIALS');
+$serviceAccountJson = getenv('SERVICE_ACCOUNT_JSON');
 
 if (!$serviceAccountJson) {
     die("Error: GOOGLE_APPLICATION_CREDENTIALS environment variable is not set.");
 }
 
-// Decode JSON from the environment variable
-$serviceAccountArray = json_decode($serviceAccountJson, true);
-
-if (json_last_error() !== JSON_ERROR_NONE) {
-    die("Error: Invalid JSON in GOOGLE_APPLICATION_CREDENTIALS.");
-}
+// Save JSON to a temporary file (because Google Client requires a file path)
+$serviceAccountFile = sys_get_temp_dir() . '/service-account.json';
+file_put_contents($serviceAccountFile, $serviceAccountJson);
 
 // Initialize Google Client
 $client = new Client();
-$client->setAuthConfig($serviceAccountArray); // Use the decoded JSON
+$client->setAuthConfig($serviceAccountFile); // Use temporary file
 $client->setScopes([Sheets::SPREADSHEETS]);
 
 $service = new Sheets($client);
