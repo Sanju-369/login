@@ -19,6 +19,13 @@ COPY . .
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
+# Create the service account JSON file securely
+RUN echo "$GOOGLE_APPLICATION_CREDENTIALS_JSON" > /var/www/html/service-account.json && \
+    chmod 600 /var/www/html/service-account.json
+
+# Set environment variable for Google API client
+ENV GOOGLE_APPLICATION_CREDENTIALS=/var/www/html/service-account.json
+
 # Expose port 80
 EXPOSE 80
 
