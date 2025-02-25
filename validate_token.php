@@ -1,7 +1,8 @@
 <?php
 session_start();
+header('Content-Type: text/plain');
 
-// ✅ Ensure a token is provided in the request
+// ✅ Check if token is provided
 if (!isset($_GET['token'])) {
     http_response_code(400);
     echo "MISSING_TOKEN";
@@ -10,12 +11,14 @@ if (!isset($_GET['token'])) {
 
 $token = $_GET['token'];
 
-// ✅ Validate token against session
+// ✅ Ensure token exists in session and matches
 if (isset($_SESSION['token']) && $_SESSION['token'] === $token) {
     echo "VALID";
-} else {
-    http_response_code(403);
-    echo "INVALID_TOKEN";
+    exit();
 }
+
+// ❌ Token is invalid or expired
+http_response_code(403);
+echo "INVALID_TOKEN";
 exit();
 ?>
