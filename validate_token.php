@@ -1,22 +1,33 @@
 <?php
 session_start();
-$tokenFile = "valid_token.txt"; // File to store the current token
+$tokenFile = "valid_token.txt"; // Token storage file
 
-// ✅ Store the latest token and update session
+// Force session persistence
+ini_set("session.use_cookies", 1);
+ini_set("session.use_only_cookies", 1);
+ini_set("session.cookie_lifetime", 3600); // Keep session alive for 1 hour
+ini_set("session.gc_maxlifetime", 3600); 
+
+// ✅ Store a new token in both session and file
 if (isset($_GET['store_token'])) {
     $token = $_GET['store_token'];
-    file_put_contents($tokenFile, $token); // Save token in file
-    $_SESSION['token'] = $token; // Store in session
+    
+    // Store token in a file
+    file_put_contents($tokenFile, $token); 
+    
+    // Store token in session
+    $_SESSION['token'] = $token; 
+    
     echo "TOKEN STORED";
     exit();
 }
 
-// ✅ Validate the stored token (Streamlit fetches this before running)
+// ✅ Retrieve and validate the stored token
 if (isset($_GET['get_token'])) {
     if (file_exists($tokenFile)) {
         $stored_token = trim(file_get_contents($tokenFile));
-        
-        if ($_SESSION['token'] === $stored_token && !empty($stored_token)) {
+
+        if (!empty($stored_token) && isset($_SESSION['token']) && $_SESSION['token'] === $stored_token) {
             echo "VALID"; // Token is valid
         } else {
             echo "INVALID"; // Token mismatch
@@ -27,13 +38,18 @@ if (isset($_GET['get_token'])) {
     exit();
 }
 
-// ✅ Logout: Expire the token and destroy session
+// ✅ Logout: Remove the token and destroy the session
 if (isset($_GET['logout'])) {
     if (file_exists($tokenFile)) {
         unlink($tokenFile); // Delete token file
     }
-    unset($_SESSION['token']); // Remove session token
-    session_destroy(); // Completely destroy the session
+    
+    // Remove token from session
+    unset($_SESSION['token']);
+    
+    // Completely destroy the session
+    session_destroy(); 
+    
     echo "TOKEN EXPIRED";
     exit();
 }
