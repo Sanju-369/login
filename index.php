@@ -25,17 +25,10 @@ $client->setAuthConfig($serviceAccountArray);
 $client->setScopes([Sheets::SPREADSHEETS]);
 
 $service = new Sheets($client);
-$spreadsheetId = "1e7rZcQ93-KweIxpFv5xEy21544-r1-VYOK-QxGco_zM"; // Replace with your Google Sheet ID
-$range = "Sheet1!A:B"; // Adjust columns as needed
+$spreadsheetId = "1e7rZcQ93-KweIxpFv5xEy21544-r1-VYOK-QxGco_zM"; // Your Google Sheet ID
+$range = "Sheet1!A:B";
 
 $error = "";
-
-// Logout Logic: Destroy session immediately and invalidate token
-if (isset($_GET['logout'])) {
-    session_destroy();
-    header("Location: index.php");
-    exit();
-}
 
 // Login Process
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -55,13 +48,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
 
         if ($isValid) {
-            // Generate a unique session token for validation
             $_SESSION['sub_id'] = $sub_id;
             $_SESSION['logged_in'] = true;
-            $_SESSION['token'] = bin2hex(random_bytes(32)); // Secure 64-character token
 
-            // Redirect to Streamlit app with token
-            header("Location: https://youutuberesearcher.streamlit.app/?token=" . $_SESSION['token']);
+            // Generate a new token and send it to valid-token.php
+            $token = bin2hex(random_bytes(32)); // Secure 64-character token
+            $_SESSION['token'] = $token;
+
+            // Send the token to valid-token.php for storage
+            file_get_contents("https://login-sub-id.onrender.com/valid-token.php?store_token=$token");
+
+            // Redirect to Streamlit app
+            header("Location: https://youutuberesearcher.streamlit.app/");
             exit();
         } else {
             $error = "Invalid Subscription ID!";
@@ -69,6 +67,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } else {
         $error = "Please enter your Subscription ID!";
     }
+}
+
+// Logout Logic
+if (isset($_GET['logout'])) {
+    session_destroy();
+    file_get_contents("https://login-sub-id.onrender.com/valid-token.php?logout=true"); // Remove token
+    header("Location: index.php");
+    exit();
 }
 ?>
 
