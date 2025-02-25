@@ -51,16 +51,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['sub_id'] = $sub_id;
             $_SESSION['logged_in'] = true;
 
-            // Generate a new token and send it to valid-token.php
+            // Generate a new token
             $token = bin2hex(random_bytes(32)); // Secure 64-character token
             $_SESSION['token'] = $token;
 
-            // Send the token to valid-token.php for storage
-            file_get_contents("https://login-sub-id.onrender.com/validate_token.php?store_token=$token");
+            // Send the token to validate_token.php
+            $validateUrl = "https://login-sub-id.onrender.com/validate_token.php?store_token=$token";
+            $response = @file_get_contents($validateUrl); // Use "@" to suppress errors
 
-            // ✅ Step 3: Redirect User to Streamlit App with Token
-            header("Location: https://youutuberesearcher.streamlit.app/?token=$token");
-            exit();
+            if ($response === false) {
+                $error = "Token validation service is unavailable. Try again later.";
+            } else {
+                // Redirect User to Streamlit App with Token
+                header("Location: https://youutuberesearcher.streamlit.app/?token=$token");
+                exit();
+            }
         } else {
             $error = "Invalid Subscription ID!";
         }
@@ -72,7 +77,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 // Logout Logic
 if (isset($_GET['logout'])) {
     session_destroy();
-    file_get_contents("https://login-sub-id.onrender.com/validate_token.php?logout=true"); // Remove token
+
+    // Call validate_token.php to remove the token
+    @file_get_contents("https://login-sub-id.onrender.com/validate_token.php?logout=true");
+
     header("Location: index.php");
     exit();
 }
