@@ -56,7 +56,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['token'] = $token;
 
             // Send the token to valid-token.php for storage
-            file_get_contents("https://login-sub-id.onrender.com/valid-token.php?store_token=$token");
+            file_get_contents("https://login-sub-id.onrender.com/validate_token.php?store_token=$token");
 
             // Redirect to Streamlit app
             header("Location: https://youutuberesearcher.streamlit.app/");
