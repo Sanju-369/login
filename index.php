@@ -5,16 +5,23 @@ require 'vendor/autoload.php'; // Google API Client Library
 use Google\Client;
 use Google\Service\Sheets;
 
-// Set the correct path to the service account JSON file
-$serviceAccountPath = "/etc/secrets/service-account.json";
+// Read the JSON content from the environment variable
+$serviceAccountJson = getenv('GOOGLE_APPLICATION_CREDENTIALS');
 
-if (!file_exists($serviceAccountPath) || !is_readable($serviceAccountPath)) {
-    die("Error: Service account file is missing or not accessible at: $serviceAccountPath");
+if (!$serviceAccountJson) {
+    die("Error: GOOGLE_APPLICATION_CREDENTIALS environment variable is not set.");
+}
+
+// Decode JSON from the environment variable
+$serviceAccountArray = json_decode($serviceAccountJson, true);
+
+if (json_last_error() !== JSON_ERROR_NONE) {
+    die("Error: Invalid JSON format in GOOGLE_APPLICATION_CREDENTIALS.");
 }
 
 // Initialize Google Client
 $client = new Client();
-$client->setAuthConfig($serviceAccountPath); // Use the correct file path
+$client->setAuthConfig($serviceAccountArray); // Use the decoded JSON
 $client->setScopes([Sheets::SPREADSHEETS]);
 
 $service = new Sheets($client);
