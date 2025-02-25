@@ -1,24 +1,29 @@
 <?php
 session_start();
-header('Content-Type: text/plain');
+$tokenFile = "valid_token.txt"; // File to store the current token
 
-// ✅ Check if token is provided
-if (!isset($_GET['token'])) {
-    http_response_code(400);
-    echo "MISSING_TOKEN";
+if (isset($_GET['store_token'])) {
+    $token = $_GET['store_token'];
+    file_put_contents($tokenFile, $token); // Save token
+    echo "TOKEN STORED";
     exit();
 }
 
-$token = $_GET['token'];
-
-// ✅ Ensure token exists in session and matches
-if (isset($_SESSION['token']) && $_SESSION['token'] === $token) {
-    echo "VALID";
+if (isset($_GET['logout'])) {
+    if (file_exists($tokenFile)) {
+        unlink($tokenFile); // Delete token on logout
+    }
+    echo "TOKEN EXPIRED";
     exit();
 }
 
-// ❌ Token is invalid or expired
-http_response_code(403);
-echo "INVALID_TOKEN";
-exit();
+// Validate token request
+if (isset($_GET['get_token'])) {
+    if (file_exists($tokenFile)) {
+        echo trim(file_get_contents($tokenFile)); // Return latest token
+    } else {
+        echo "INVALID";
+    }
+    exit();
+}
 ?>
