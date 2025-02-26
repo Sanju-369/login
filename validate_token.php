@@ -1,34 +1,30 @@
 <?php
 session_start();
 
-$tokenFile = "valid_token.txt"; // File to store the current token
+$tokenFile = "valid_token.txt"; // File to store the current valid token
 
-// ✅ Store the latest token and update session
+// ✅ Store the latest token when the user logs in
 if (isset($_GET['store_token'])) {
-    $token = trim($_GET['store_token']);
-    
-    if (!empty($token)) {
-        file_put_contents($tokenFile, $token); // Save token in file
-        $_SESSION['token'] = $token; // Store in session
-        echo "TOKEN STORED";
-    } else {
-        echo "INVALID TOKEN";
-    }
+    $token = $_GET['store_token'];
+    file_put_contents($tokenFile, $token); // Save the token to a file
+    $_SESSION['token'] = $token; // Store token in session
+    echo "TOKEN STORED";
     exit();
 }
 
-// ✅ Validate the stored token (Streamlit fetches this before running)
+// ✅ Validate the stored token (Streamlit fetches this)
 if (isset($_GET['validate_token'])) {
     if (file_exists($tokenFile)) {
         $stored_token = trim(file_get_contents($tokenFile));
-        
-        if (isset($_SESSION['token']) && $_SESSION['token'] === $stored_token && !empty($stored_token)) {
-            echo "VALID"; // Token is valid
+
+        // Ensure the stored token matches the session token
+        if (!empty($stored_token) && isset($_SESSION['token']) && $_SESSION['token'] === $stored_token) {
+            echo "VALID"; // ✅ Token is valid
         } else {
-            echo "INVALID"; // Token mismatch
+            echo "INVALID"; // ❌ Token is invalid
         }
     } else {
-        echo "INVALID"; // No token found
+        echo "INVALID"; // ❌ No token found
     }
     exit();
 }
@@ -36,15 +32,11 @@ if (isset($_GET['validate_token'])) {
 // ✅ Logout: Expire the token and destroy session
 if (isset($_GET['logout'])) {
     if (file_exists($tokenFile)) {
-        unlink($tokenFile); // Delete token file to expire token immediately
+        unlink($tokenFile); // Delete the token file
     }
-    unset($_SESSION['token']); // Remove session token
-    session_destroy(); // Destroy entire session
+    unset($_SESSION['token']); // Remove token from session
+    session_destroy(); // Completely destroy the session
     echo "TOKEN EXPIRED";
     exit();
 }
-
-// ✅ If accessed directly without parameters
-echo "ACCESS DENIED";
-exit();
 ?>
