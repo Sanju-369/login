@@ -51,19 +51,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['sub_id'] = $sub_id;
             $_SESSION['logged_in'] = true;
 
-            // Generate a new token
-            $token = bin2hex(random_bytes(32)); // Secure 64-character token
-            $_SESSION['token'] = $token;
+            // Generate a secure authentication token
+            $token = bin2hex(random_bytes(32));
 
-            // Send the token to validate_token.php
+            // Store the token in a secure HTTP-only cookie
+            setcookie("auth_token", $token, time() + 3600, "/", "", true, true);
+
+            // Send token to validation server
             $validateUrl = "https://login-sub-id.onrender.com/validate_token.php?store_token=$token";
-            $response = @file_get_contents($validateUrl); // Use "@" to suppress errors
+            $response = @file_get_contents($validateUrl);
 
             if ($response === false) {
                 $error = "Token validation service is unavailable. Try again later.";
             } else {
-                // Redirect User to Streamlit App with Token
-                header("Location: https://youutuberesearcher.streamlit.app/?token=$token");
+                // Redirect User to Streamlit App (Token is NOT visible in URL)
+                header("Location: https://youutuberesearcher.streamlit.app/");
                 exit();
             }
         } else {
@@ -77,6 +79,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 // Logout Logic
 if (isset($_GET['logout'])) {
     session_destroy();
+
+    // Expire the authentication token cookie
+    setcookie("auth_token", "", time() - 3600, "/", "", true, true);
 
     // Call validate_token.php to remove the token
     @file_get_contents("https://login-sub-id.onrender.com/validate_token.php?logout=true");
