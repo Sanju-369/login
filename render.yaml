@@ -7,10 +7,12 @@ services:
     disk:
       name: persistent-storage
       mountPath: /var/www/html
-    buildCommand: "docker build -t your-php-app ."
+    buildCommand: "docker build --no-cache -t your-php-app ."
     startCommand: "apache2-foreground"
     envVars:
       - key: DATABASE_URL
-        sync: false  # Make sure to set this in the Render dashboard manually
+        sync: false  # Set this manually in Render Dashboard
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        value: "/var/www/html/service-account.json"  # Ensures API credentials are available
     healthCheckPath: "/"
     autoDeploy: true
