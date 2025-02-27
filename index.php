@@ -5,32 +5,29 @@ require 'vendor/autoload.php'; // Google API Client Library
 use Google\Client;
 use Google\Service\Sheets;
 
-// Read the JSON content from the environment variable
-$serviceAccountJson = getenv('GOOGLE_APPLICATION_CREDENTIALS');
+// Database connection
+$db = new PDO("pgsql:host=dpg-cuv9sadsvqrc73btnrcg-a;dbname=sam_ttbj", "sam_ttbj_user", "ELmECV1xOPM5DmcIp5mR5y2zkBCBu5Oc");
 
+// Google Sheets API Setup
+$serviceAccountJson = getenv('GOOGLE_APPLICATION_CREDENTIALS');
 if (!$serviceAccountJson) {
     die("Error: GOOGLE_APPLICATION_CREDENTIALS environment variable is not set.");
 }
 
-// Decode JSON from the environment variable
 $serviceAccountArray = json_decode($serviceAccountJson, true);
-
 if (json_last_error() !== JSON_ERROR_NONE) {
     die("Error: Invalid JSON format in GOOGLE_APPLICATION_CREDENTIALS.");
 }
 
-// Initialize Google Client
 $client = new Client();
 $client->setAuthConfig($serviceAccountArray);
 $client->setScopes([Sheets::SPREADSHEETS]);
-
 $service = new Sheets($client);
-$spreadsheetId = "1e7rZcQ93-KweIxpFv5xEy21544-r1-VYOK-QxGco_zM"; // Your Google Sheet ID
-$range = "Sheet1!A:B";
 
+$spreadsheetId = "1e7rZcQ93-KweIxpFv5xEy21544-r1-VYOK-QxGco_zM"; // Your Google Sheet ID
+$range = "Sheet1!A:A";
 $error = "";
 
-// Login Process
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $sub_id = trim($_POST['sub_id'] ?? '');
 
@@ -53,41 +50,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             // Generate a secure authentication token
             $token = bin2hex(random_bytes(32));
+            $expiry = time() + 3600; // Token expires in 1 hour
 
-            // Store the token in a secure HTTP-only cookie
-            setcookie("auth_token", $token, time() + 3600, "/", "", true, true);
+            // Store the token in PostgreSQL database
+            $stmt = $db->prepare("INSERT INTO tokens (sub_id, token, expiry) VALUES (?, ?, ?) 
+                                  ON CONFLICT (sub_id) DO UPDATE SET token = EXCLUDED.token, expiry = EXCLUDED.expiry");
+            $stmt->execute([$sub_id, $token, $expiry]);
 
-            // Send token to validation server
-            $validateUrl = "https://login-sub-id.onrender.com/validate_token.php?store_token=$token";
-            $response = @file_get_contents($validateUrl);
-
-            if ($response === false) {
-                $error = "Token validation service is unavailable. Try again later.";
-            } else {
-                // Redirect User to Streamlit App (Token is NOT visible in URL)
-                header("Location: https://youutuberesearcher.streamlit.app/");
-                exit();
-            }
+            // Redirect User to Streamlit App
+            header("Location: https://youutuberesearcher.streamlit.app/?token=$token");
+            exit();
         } else {
             $error = "Invalid Subscription ID!";
         }
     } else {
         $error = "Please enter your Subscription ID!";
     }
-}
-
-// Logout Logic
-if (isset($_GET['logout'])) {
-    session_destroy();
-
-    // Expire the authentication token cookie
-    setcookie("auth_token", "", time() - 3600, "/", "", true, true);
-
-    // Call validate_token.php to remove the token
-    @file_get_contents("https://login-sub-id.onrender.com/validate_token.php?logout=true");
-
-    header("Location: index.php");
-    exit();
 }
 ?>
 
